@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Upload Excel to Firebase</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            width: 400px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #2c3e50;
+        }
+        input[type="file"] {
+            margin-top: 20px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #21618c;
+        }
+        #tableContainer {
+            width: 90%;
+            max-width: 1500px;
+            max-height: 800px;
+            overflow-y: auto;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            background-color: #fff;
+        }
+        #dataTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #dataTable th, #dataTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #dataTable th {
+            background-color: #2980b9;
+            color: white;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.17.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h2>Upload Excel File to Database</h2>
+    <!-- Excel File Input -->
+    <div class="form-group">
+        <label for="fileUpload">Upload Excel File:</label>
+        <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+    </div>
+    <button id="submitBtn" style="display:none;">Submit</button>
+    <button class="getData">Get Details</button>
+</div>
+
+<!-- Scrollable Table Container -->
+<div id="tableContainer" style="display: none;">
+    <table id="dataTable">
+        <thead>
+            <tr id="tableHeaderRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import { getDatabase, onValue, ref, set } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDZd2-0ppI54DfT14XdYrTWjFuW9L8QT8o",
+        authDomain: "motors-eb701.firebaseapp.com",
+        databaseURL: "https://motors-eb701-default-rtdb.firebaseio.com",
+        projectId: "motors-eb701",
+        storageBucket: "motors-eb701.appspot.com",
+        messagingSenderId: "50134567368",
+        appId: "1:50134567368:web:b232667db3d034d8fa18fd",
+        measurementId: "G-G3WFTCZ5XC"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let excelData = null;
+
+    document.getElementById('fileUpload').addEventListener('change', handleFile);
+    document.getElementById('submitBtn').addEventListener('click', () => {
+        if (excelData) {
+            uploadDataToFirebase(excelData);
+        } else {
+            alert("Please upload an Excel file first.");
+        }
+    });
+
+    document.querySelector('.getData').addEventListener("click", () => {
+        getUsers()
+    });
+
+    function getUsers() {
+        const usersRef = ref(db, "CarDetails");
+
+        onValue(usersRef, (snapshot) => {
+            const users = snapshot.val();
+            if (users) {
+                const userList = Object.values(users);
+                displayData(userList);
+            } else {
+                console.log("No users found");
+                alert("No data found in the database.");
+            }
+        });
+    }
+
+    function displayData(data) {
+        const tableContainer = document.getElementById("tableContainer");
+        const headerRow = document.getElementById("tableHeaderRow");
+        const body = document.getElementById("tableBody");
+
+        // Clear any previous data
+        headerRow.innerHTML = '';
+        body.innerHTML = '';
+
+        if (data.length > 0) {
+            // Set up header row
+            Object.keys(data[0]).forEach(key => {
+                const th = document.createElement('th');
+                th.textContent = key;
+                headerRow.appendChild(th);
+            });
+
+            // Populate table rows
+            data.forEach(record => {
+                const row = document.createElement('tr');
+                Object.values(record).forEach(value => {
+                    const cell = document.createElement('td');
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                });
+                body.appendChild(row);
+            });
+
+            tableContainer.style.display = 'block';
+        }
+    }
+
+    async function uploadDataToFirebase(data) {
+        const databaseRef = ref(db, 'CarDetails');
+        await set(databaseRef, data);
+        alert("Data uploaded successfully to Database!");
+    }
+
+    function handleFile(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            excelData = XLSX.utils.sheet_to_json(firstSheet);
+            console.log(excelData);
+            document.getElementById('submitBtn').style.display = 'inline-block';
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+</script>
+
+</body>
+</html>

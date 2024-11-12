@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Selector & Quotation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script> <!-- Add html2pdf library -->
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+            color: #34495e;
+        }
+
+        input{
+            width:  96% !important;
+        }
+        select, input[type="file"], input[type="text"], input[type="tel"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2980b9;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #21618c;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .quotation-table {
+            width: 100%;
+            margin-top: 50px;
+            border-collapse: collapse;
+            font-size: 16px;
+        }
+        .quotation-table th, .quotation-table td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        .quotation-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .quotation-table caption {
+            caption-side: top;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .quotation-template {
+            /* display: none; */
+            margin: 0 auto;
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .quotation-preview{
+            margin: 4% !important;
+        }
+
+        .quotation {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+
+        .quotation,
+        .quotation th,
+        .quotation td {
+            border: 1px solid black;
+        }
+
+        .quotation th,
+        .quotation td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        .pdf-viewer {
+            display: none;
+            text-align: center;
+        }
+
+        .pdf-viewer iframe {
+            width: 100%;
+            height: 600px;
+        }
+
+        .datee{
+            width: 30%;
+        }
+
+        .ct{
+            text-align: center !important;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="headd" id="clickableDiv">Sanya Motors</h1>
+
+    <div class="container">
+        <!-- Customer Details -->
+        <div class="form-group">
+            <label for="customerName">Customer Name:</label>
+            <input type="text" id="customerName" placeholder="Enter Customer Name" required />
+        </div>
+
+        <div class="form-group">
+            <label for="customerNumber">Customer Contact Number:</label>
+            <input type="tel" id="customerNumber" placeholder="Enter Contact Number" required />
+        </div>
+
+        <!-- Dropdowns -->
+        <div class="form-group">
+            <label for="type">Type:</label>
+            <select id="type">
+                <option value="">Select Type</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="fuel">Fuel:</label>
+            <select id="fuel">
+                <option value="">Select Fuel</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="ppl">PPL:</label>
+            <select id="ppl">
+                <option value="">Select PPL</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="trim">Trim:</label>
+            <select id="trim">
+                <option value="">Select Trim</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="color">Color:</label>
+            <select id="color">
+                <option value="">Select Color</option>
+            </select>
+        </div>
+
+        <!-- Submit and Reset Buttons -->
+        <div class="buttons">
+            <button id="submit-btn">Submit</button>
+            <button class="refresh">Refresh</button> <!-- Refresh Button -->
+        <button id="printBtn" style="display:none;">Print Quotation</button>
+
+        </div>
+
+        <!-- Quotation Preview Table -->
+        
+        <!-- Print Button -->
+    </div>
+
+    <div id="pdfViewer" class="pdf-viewer">
+        <iframe id="pdfFrame"></iframe>
+        <!-- <button class="downPdf">Download PDF</button> -->
+    </div>
+
+    <div id="quotationPreview"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import { getDatabase,onValue, ref, set, push } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDZd2-0ppI54DfT14XdYrTWjFuW9L8QT8o",
+        authDomain: "motors-eb701.firebaseapp.com",
+        databaseURL: "https://motors-eb701-default-rtdb.firebaseio.com",
+        projectId: "motors-eb701",
+        storageBucket: "motors-eb701.appspot.com",
+        messagingSenderId: "50134567368",
+        appId: "1:50134567368:web:b232667db3d034d8fa18fd",
+        measurementId: "G-G3WFTCZ5XC"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    function getUsers() {
+    const usersRef = ref(db, "CarDetails");
+
+    // Listen for changes to the users node
+
+    onValue(usersRef, (snapshot) => {
+      let users = snapshot.val();
+      if (users) {
+        // Loop through each user and log their details
+        // console(Object.values(users));
+        updateDataArray(Object.values(users))
+        
+      } else {
+        console.log("No users found");
+      }
+    });
+  }
+
+
+        let data = [
+            {'TYPE': 'LV', 'FUEL': 'Petrol', 'PPL': 'Tiago', 'Trim': 'NRG', 'Color': 'P White', 'On Road Price': 867236},
+            {'TYPE': 'LV', 'FUEL': 'CNG', 'PPL': 'Tiago', 'Trim': 'XM CNG', 'Color': 'Red', 'On Road Price': 798305},
+            {'TYPE': 'LV', 'FUEL': 'Petrol', 'PPL': 'Tiago', 'Trim': 'XZ+ DT Prem', 'Color': 'P White DT', 'On Road Price': 878829},
+        ];
+
+        let selections = {
+            type: "",
+            fuel: "",
+            ppl: "",
+            trim: "",
+            color: ""
+        };
+
+        let populateAll = () => {populateDropdown('type', 'TYPE');
+            populateDropdown('fuel', 'FUEL');
+            populateDropdown('ppl', 'PPL');
+            populateDropdown('trim', 'Trim');
+            populateDropdown('color', 'Color');
+        }
+
+        // Initialize dropdowns
+        window.onload = function() {
+            populateAll()
+        };
+
+        // Populate dropdown options
+        function populateDropdown(elementId, key) {
+            const dropdown = document.getElementById(elementId);
+            const uniqueValues = [...new Set(data.map(item => item[key]))];
+            uniqueValues.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.text = value;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // Update dropdowns based on current selection
+        
+    let updateDropdowns = () => {
+        // Capture current selections
+    selections = {
+        type: document.getElementById('type').value,
+        fuel: document.getElementById('fuel').value,
+        ppl: document.getElementById('ppl').value,
+        trim: document.getElementById('trim').value,
+        color: document.getElementById('color').value
+    };
+
+    // Update each dropdown based on the current selections
+    updateDropdownOptions('fuel', 'FUEL');
+    updateDropdownOptions('ppl', 'PPL');
+    updateDropdownOptions('trim', 'Trim');
+    updateDropdownOptions('color', 'Color');
+    }
+
+    function updateDropdownOptions(elementId, key) {
+    const dropdown = document.getElementById(elementId);
+    dropdown.innerHTML = '<option value="">Select ' + key + '</option>'; // Reset options
+
+    // Filter data based on current selections
+    const filteredData = data.filter(item =>
+        (!selections.type || item.TYPE === selections.type) &&
+        (!selections.fuel || item.FUEL === selections.fuel) &&
+        (!selections.ppl || item.PPL === selections.ppl) &&
+        (!selections.trim || item.Trim === selections.trim) &&
+        (!selections.color || item.Color === selections.color)
+    );
+
+    // Get unique values for the dropdown
+    const uniqueValues = [...new Set(filteredData.map(item => item[key]))];
+    uniqueValues.forEach(value => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.text = value;
+        dropdown.appendChild(option);
+    });
+
+    // Preserve the current selection if it is still available in the filtered options
+    if (selections[elementId] && uniqueValues.includes(selections[elementId])) {
+        dropdown.value = selections[elementId];
+    }
+}
+
+        function findMatchingCar() {
+    const searchCriteria = createSearchCriteria();
+    console.log(searchCriteria);
+    
+    const result = data.find((car,j) =>{
+        return Object.keys(searchCriteria).every(key => car[key] === searchCriteria[key])
+    }
+    );
+
+    console.log(result);
+}        
+
+function createSearchCriteria() {
+    
+    return {
+        TYPE: document.getElementById('type').value,
+        FUEL: document.getElementById('fuel').value,
+        PPL: document.getElementById('ppl').value,
+        Trim: document.getElementById('trim').value,
+        Color: document.getElementById('color').value
+    };
+}
+// Submit and show quotation preview
+
+        function submitSelection() {
+            // findMatchingCar();
+            console.log(data[1]);
+            
+            let selectedObject = data.find(item => {
+            return item.TYPE === document.getElementById('type').value &&
+            item.FUEL === document.getElementById('fuel').value &&
+            item.PPL === document.getElementById('ppl').value &&
+            item.Trim === document.getElementById('trim').value &&
+            item.Color === document.getElementById('color').value;
+        });
+        // console.log(selectedObject);
+
+            const customerName = document.getElementById('customerName').value;
+            const customerNumber = document.getElementById('customerNumber').value;
+            
+            if (!selectedObject) {
+                // alert("Please select valid car details.");
+                console.log(data[0]);
+                
+                selectedObject = data[1]
+            }
+
+            const quotationPreview = `
+                <div class="quotation-template" id="quotationTemplate">
+            <table class="quotation">
+            <tr>
+                <td class="ct" colspan="6"><strong>Quotation</strong></td>
+            </tr>
+            <tr>
+                <td colspan="1">Passenger</td>
+                <td colspan="3">Sanya</td>
+                <td colspan="2">Tata Motors</td>
+            </tr>
+            <tr>
+                <td colspan="2">PERFORMA</td>
+                <td colspan="1">15</td>
+                <td colspan="2">DATE</td>
+                <td class="datee" colspan="2">${(new Date).toISOString().split('T')[0].split("-").reverse().join("-")}</td>
+            </tr>
+            <tr>
+                <td colspan="6"></td>
+            </tr>
+            <tr>
+                <td colspan="2">Customer Name</td>
+                <td colspan="4" id="clientNameDisplay">${customerName}</td>
+            </tr>
+            <tr>
+                <td colspan="6"></td>
+            </tr>
+            <tr>
+                <td colspan="2">Address</td>
+                <td colspan="4">Abad</td>
+            </tr>
+            <tr>
+                <td colspan="6"></td>
+            </tr>
+            <tr>
+                <td colspan="">Mobile</td>
+                <td colspan="1" id="phoneNumberDisplay">${customerNumber}</td>
+                <td colspan="1">MODEL</td>
+                <td colspan="3" id="modelDisplay">${selectedObject.PPL}</td>
+            </tr>
+            <tr>
+                <td colspan="2"></td>
+                <td colspan="0.5">COLOR</td>
+                <td colspan="3.5">${selectedObject.Color}</td>
+            </tr>
+            <tr>
+                <td colspan="6"></td>
+            </tr>
+            <tr>
+                <td colspan="3">EX-Showroom Price</td>
+                <td colspan="3">${selectedObject['Ex-Showroom']}</td>
+            </tr>
+            <tr>
+                <td colspan="3">INSURANCE</td>
+                <td colspan="3">${selectedObject.INSURANCE}</td>
+            </tr>
+            <tr>
+                <td colspan="3">Resgistration Tax</td>
+                <td colspan="3">${selectedObject['Registration']}</td>
+            </tr>
+            <tr>
+                <td colspan="3">FAST TAG</td>
+                <td colspan="3">${selectedObject['Fastag']}</td>
+            </tr>
+            <tr>
+                <td colspan="3">TCS @ 1%</td>
+                <td colspan="3">${selectedObject['TCS']}</td>
+            </tr>
+            <tr>
+                <td colspan="3">EXTERNAL WARRENTY 3+2 YEAR UNLIMTED  KM </td>
+                <td colspan="3">5000</td>
+            </tr>
+            <tr>
+                <td colspan="3"></td>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td colspan="3"><strong>DISCOUNTED ON ROAD PRICE</strong></td>
+                <td colspan="3"><strong>Rs. ${selectedObject['On Road Price']}</strong></td>
+            </tr>
+            <tr>
+                <td colspan="3">&nbsp;</td>
+                <td colspan="3"><strong></strong></td>
+            </tr>
+            <tr>
+                <td colspan="3">
+                    Terms & conditions
+                    <ol>
+                        <li>Demand Draft of the following Amounts in favour of "SANYA MOTORS Payable at Jalna Aurangabad</li>
+                        <li>Booking Cancellation Charge will be 10000 +DP*</li>
+                    </ol>
+                </td>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td colspan="3">Our Bank Account Details for RTGS:</td>
+            </tr>
+            <tr>
+                <td>Account Name :-</td>
+                <td colspan="2">Sanya Motors</td>
+            </tr>
+            <tr>
+                <td>Account No :-</td>
+                <td></td>
+                <td>31080377982</td>
+            </tr>
+            <tr>
+                <td>IFSC CODE :-</td>
+                <td></td>
+                <td>SBIN0021880</td>
+            </tr>
+            <tr>
+                <td>Bank Name :-</td>
+                <td></td>
+                <td>STATE BANK OF INDIA</td>
+            </tr>
+            <tr>
+                <td>Branch :-</td>
+                <td></td>
+                <td>CIDCO N-2 AURANGABAD</td>
+            </tr>
+            <tr>
+                <td colspan="6">**Price & Statutory Levies Prevailing At  the time of Delivery are applicable***</td>
+            </tr>
+            <tr>
+                <td colspan="6"></td>
+            </tr>
+            <tr>
+                <td colspan="6">***FINANCE DOCUMENTS****</td>
+            </tr>
+            <tr>
+                <td colspan="3">Our Bank Account Details for RTGS:</td>
+            </tr>
+            <tr>
+                <td><strong>BUSINESS / PROFESSION</strong></td>
+                <td colspan="2"><strong>SALARIED CUSTOMER</strong></td>
+            </tr>
+            <tr>
+                <td>1) Pan Card</td>
+                <td colspan="2">salary slip last 3 month</td>
+            </tr>
+            <tr>
+                <td>2) Aadhar Card</td>
+                <td colspan="2">form no 16 or IT Return Last 2 Years</td>
+            </tr>
+            <tr>
+                <td>3) 2 Passport Size Photo</td>
+                <td colspan="2">form no 16 or IT Return Last 2 Years</td>
+            </tr>
+            <tr>
+                <td>5) Udyog Adhar / Shop Act / GST Certificate</td>
+                <td colspan="2">2 Passport Size Photo</td>
+            </tr>
+            <tr>
+                <td>6) Last 3 Yrs Balance Sheet & P/L A/C</td>
+                <td colspan="2">Pan Card</td>
+            </tr>
+            <tr>
+                <td>7) Computation Of Income I T CA Atteseted</td>
+                <td colspan="2">Adhar Card</td>
+            </tr>
+            <tr>
+                <td>8) PDC'S Cheques 6/7</td>
+                <td colspan="2">Light Bill</td>
+            </tr>
+            <tr>
+                <td>9) Light Bill</td>
+                <td colspan="2">PDC'S Cheques 6/7</td>
+            </tr>
+            <tr>
+                <td>10) Bank Statement For Last 6 Month</td>
+                <td colspan="2">Laon Repayment Statement Last 1 Yrs</td>
+            </tr>
+            <tr>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td>CA NAME</td>
+                <td colspan="2"></td>
+            </tr>
+            <tr>
+                <td>MOBILE NO.</td>
+                <td colspan="2"></td>
+            </tr>
+        </table>
+        
+            
+    </div>
+            `;
+
+            
+            // Show quotation preview
+            document.getElementById('quotationPreview').innerHTML = quotationPreview;
+            // console.log(quotationPreview);
+            
+            console.log('hell pell');
+            
+            // Show print button
+            document.getElementById('printBtn').style.display = 'block';
+
+            
+  document.querySelectorAll('td').forEach(i => {
+    i.style.textAlign = 'center'
+  })
+
+  document.querySelector('table').style.marginTop = '5%'
+            
+        }
+
+        // Reset dropdowns to initial state
+        function resetDropdowns() {
+            console.log('here');
+            
+            document.getElementById('type').value = "";
+            document.getElementById('fuel').value = "";
+            document.getElementById('ppl').value = "";
+            document.getElementById('trim').value = "";
+            document.getElementById('color').value = "";
+
+            selections = { type: "", fuel: "", ppl: "", trim: "", color: "" };
+            document.getElementById('quotationPreview').innerHTML = ""; // Clear quotation preview
+            document.getElementById('printBtn').style.display = 'none'; // Hide print button
+        }
+
+        // Handle Excel file upload and convert to JSON
+        function handleFile(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const excelData = XLSX.utils.sheet_to_json(firstSheet);
+                updateDataArray(excelData);
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Update data array with new Excel data
+        function updateDataArray(excelData) {
+            
+            // console.log(excelData);
+            
+            data = []
+            data = excelData.map(row => ({
+                TYPE: row['TYPE'],
+                FUEL: row['FUEL'],
+                PPL: row['PPL'],
+                Trim: row['Trim'],
+                Color: row['Color'],
+                'On Road Price': row['On Road Price'],
+                'AMT or MT': row['AMT or MT'],
+                'Ex-Showroom':row['Ex-Showroom'],
+                'Fastag':row['Fastag'],
+                'INSURANCE':row['INSURANCE'],
+                'PL':row['PL'],
+                'Registration':row['Registration'],
+                'TCS':row['TCS'],
+            }));
+
+            populateAll()
+
+            resetDropdowns();
+            document.querySelector('select').remove(1)
+        }
+
+  getUsers()
+
+  function downloadPDF() {
+        if (window.pdfDocument) {
+            window.pdfDocument.save('quotation.pdf');
+        }
+    }
+
+//     async function generatePDF() {
+//     const { jsPDF } = window.jspdf;
+//     const doc = new jsPDF("p", "mm", "a4"); // A4 size PDF in portrait mode
+
+//     const quotationTemplate = document.getElementById('quotationTemplate');
+//     quotationTemplate.style.display = 'block'; // Ensure the table is visible
+
+//     // Use html2canvas to capture the HTML content
+//     const canvas = await html2canvas(quotationTemplate, {
+//         scale: 1, // Reduce scale to make the content smaller
+//         useCORS: true
+//     });
+
+//     // Get image data from canvas
+//     const imgData = canvas.toDataURL('image/png');
+
+//     // Calculate the scaled width and height for the PDF page
+//     const imgProps = doc.getImageProperties(imgData);
+//     const pdfWidth = doc.internal.pageSize.getWidth();
+//     // const pdfWidth = 180;
+//     console.log(pdfWidth);
+    
+//     // const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+//     const pdfHeight = 440;
+//     console.log(pdfHeight);
+    
+
+//     // Fit the content to a single A4 page by adjusting margins if needed
+//     const margin = 5;
+//     doc.addImage(imgData, 'PNG', margin, margin, pdfWidth - 2 * margin, pdfHeight);
+
+//     // Convert PDF to data URL and display it in the iframe
+//     const pdfDataUri = doc.output('datauristring');
+//     const pdfFrame = document.getElementById('pdfFrame');
+//     pdfFrame.src = pdfDataUri;
+//     document.getElementById('pdfViewer').style.display = 'block';
+
+//     // Store the document for downloading
+//     window.pdfDocument = doc;
+//     document.querySelector('iframe').style.display = 'none'
+//     downloadPDF()
+// }
+
+function generatePDF() {
+            document.querySelector('table').style.fontSize = '11px'
+            const element = document.getElementById('quotationTemplate');
+            const options = {
+                margin:       0.2,
+                filename:     'quotation.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Generate PDF and automatically download
+            html2pdf().set(options).from(element).save();
+        }
+  document.querySelector('#submit-btn').addEventListener('click', () => {
+    submitSelection()
+  })
+
+
+  document.querySelectorAll('select').forEach(i => {
+    i.addEventListener('change', () => {
+        updateDropdowns()
+    })
+  })
+
+  document.querySelector('#printBtn').addEventListener('click', async () => {
+    await generatePDF()
+  })
+
+  document.querySelector('.refresh').addEventListener('click', () => {
+    resetDropdowns()
+  })
+  
+  document.querySelector('.downPdf').addEventListener('click', async () => {
+    await downloadPDF()
+  })
+
+  </script>
+</body>
+</html>
